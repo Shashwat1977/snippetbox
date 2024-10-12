@@ -8,13 +8,14 @@ import (
 	"strconv"
 
 	"github.com.Shashwat1977.snippetbox/internal/models"
+	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
+	// if r.URL.Path != "/" { // We don't need this , as httprouter matches things exactly.
+	// 	http.NotFound(w, r)
+	// 	return
+	// }
 
 	snippets, err := app.snippets.Latest()
 	if err != nil {
@@ -29,7 +30,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+
+	// id, err := strconv.Atoi(r.URL.Query().Get("id")) Older servmux requirement
+
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil || id < 1 {
 		app.notFound(w)
 		return
@@ -53,11 +58,15 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		app.clientError(w, http.StatusMethodNotAllowed)
-		return
-	}
+	w.Write([]byte("This is the form for creating snippet"))
+}
+
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+	// if r.Method != http.MethodPost {      ***** required for go servemux routing.*****
+	// 	w.Header().Set("Allow", http.MethodPost)
+	// 	app.clientError(w, http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	title := "O snail"
 	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
@@ -70,7 +79,7 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect to a different page
-	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
 
 // The serverError helper writes an error message and stack trace to the errorLog,
