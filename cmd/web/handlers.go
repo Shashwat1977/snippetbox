@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com.Shashwat1977.snippetbox/internal/models"
 	"github.com/julienschmidt/httprouter"
@@ -23,7 +25,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := app.newTemplateData()
+	data := app.newTemplateData(r)
 	data.Snippets = snippets
 
 	app.render(w, http.StatusOK, "home.tmpl", data)
@@ -51,14 +53,15 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := app.newTemplateData()
+	data := app.newTemplateData(r)
 	data.Snippet = snippet
 
 	app.render(w, http.StatusOK, "view.tmpl", data)
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is the form for creating snippet"))
+	data := app.newTemplateData(r)
+	app.render(w, http.StatusOK, "create.tmpl", data)
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
@@ -68,15 +71,49 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	// 	return
 	// }
 
-	title := "O snail"
-	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
-	expires := 7
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	title := r.PostForm.Get("title")
+	content := r.PostForm.Get("content")
+
+	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	fieldErrors := make(map[string]string)
+
+	if strings.TrimSpace(title) == "" {
+		fieldErrors["title"] = "The title must not be empty"
+	} else if utf8.RuneCountInString(title) > 100 {
+		fieldErrors["title"] = "The length of title should be less than 100"
+	}
+
+	if strings.TrimSpace(content) == "" {
+		fieldErrors["content"] = "The content field should not be empty"
+	}
+
+	if expires != 1 && expires != 7 && expires != 365 {
+		fieldErrors["expires"] = "This field must equal 1, 7 or 365"
+	}
+
+	if len(fieldErrors) > 0 {
+		fmt.Fprint(w, fieldErrors)
+		return
+	}
 
 	id, err := app.snippets.Insert(title, content, expires)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Snippet successfully created!")
 
 	// Redirect to a different page
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
