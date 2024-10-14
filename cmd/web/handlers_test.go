@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,7 @@ import (
 	"github.com.Shashwat1977.snippetbox/internal/assert"
 )
 
-func Test_Ping(t *testing.T) {
+func Test_Ping_Dummy(t *testing.T) {
 	rr := httptest.NewRecorder() // Type of rr is *httptest.ResponseRecorder
 
 	r, err := http.NewRequest(http.MethodGet, "/", nil)
@@ -18,7 +19,12 @@ func Test_Ping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Ping(rr, r)
+	app := &application{
+		infoLog:  log.New(io.Discard, "", 0),
+		errorLog: log.New(io.Discard, "", 0),
+	}
+
+	app.Ping(rr, r)
 
 	rs := rr.Result()
 
@@ -34,4 +40,18 @@ func Test_Ping(t *testing.T) {
 	bytes.TrimSpace(body)
 
 	assert.Equal(t, string(body), "OK")
+}
+
+func Test_Ping(t *testing.T) {
+	app := newTestApplication(t)
+
+	ts := newTestServer(t, app.routes())
+	defer ts.Close()
+
+	code, _, body := ts.Get(t, "/ping")
+
+	assert.Equal(t, code, http.StatusOK)
+
+	assert.Equal(t, body, "OK")
+
 }
