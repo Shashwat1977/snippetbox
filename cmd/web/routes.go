@@ -12,7 +12,7 @@ func (app *application) routes() http.Handler {
 	// ******** Code with http servemux *********
 	// mux := http.NewServeMux()
 
-	// fileServer := http.FileServer(http.Dir("./ui/static/"))
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// mux.HandleFunc("/", app.home)
@@ -21,12 +21,12 @@ func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	// fileServer := http.FileServer(http.Dir("./ui/static/"))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
 	// And then create the routes using the appropriate methods, patterns and
 	// handlers.
-	dynamic := alice.New(app.sessionManager.LoadAndSave)
+	dynamic := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
 
 	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))
 	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.snippetView))
