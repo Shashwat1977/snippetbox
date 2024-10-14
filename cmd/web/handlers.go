@@ -276,7 +276,7 @@ func (app *application) notFound(w http.ResponseWriter) {
 	app.clientError(w, http.StatusNotFound)
 }
 
-func Ping(w http.ResponseWriter, r *http.Request) {
+func (app *application) Ping(w http.ResponseWriter, r *http.Request) {
 	// Handler to test whether server is up or not
 
 	w.Write([]byte("OK"))
