@@ -46,8 +46,6 @@ func Test_SecureHeader(t *testing.T) {
 	expectedValue = "deny"
 	assert.Equal(t, rs.Header.Get("X-Frame-Options"), expectedValue)
 
-	// Check that the middleware has correctly set the X-XSS-Protection header
-	// on the response
 	expectedValue = "0"
 	assert.Equal(t, rs.Header.Get("X-XSS-Protection"), expectedValue)
 
